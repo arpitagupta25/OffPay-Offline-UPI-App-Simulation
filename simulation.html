@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline UPI Simulation</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .status-pending { color: orange; font-weight: bold; }
+    .status-completed { color: green; font-weight: bold; }
+    .status-failed { color: red; font-weight: bold; }
+    body { padding: 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2 class="mb-4">Offline UPI Simulation</h2>
+
+    <div class="mb-3">
+      <label class="form-label">Sender</label>
+      <input id="sender" class="form-control" placeholder="Enter sender name">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Receiver</label>
+      <input id="receiver" class="form-control" placeholder="Enter receiver name">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Amount</label>
+      <input id="amount" type="number" class="form-control" placeholder="Enter amount">
+    </div>
+    <button class="btn btn-primary mb-3" onclick="makeTransaction()">Send Transaction</button>
+
+    <hr>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4>Pending Transactions</h4>
+      <button class="btn btn-secondary" onclick="toggleInternet()">Toggle Internet</button>
+      <span id="internet-status" class="ms-3">Internet: OFF</span>
+    </div>
+
+    <ul id="pending-list" class="list-group mb-4"></ul>
+
+    <h4>Transaction History</h4>
+    <ul id="history-list" class="list-group"></ul>
+  </div>
+
+  <script>
+    let internet = false;
+
+    function toggleInternet() {
+      internet = !internet;
+      document.getElementById("internet-status").innerText = "Internet: " + (internet ? "ON" : "OFF");
+      if (internet) processTransactions();
+    }
+
+    function makeTransaction() {
+      const tx = {
+        sender: document.getElementById("sender").value,
+        receiver: document.getElementById("receiver").value,
+        amount: document.getElementById("amount").value,
+        status: 'Pending'
+      };
+
+      if (!tx.sender || !tx.receiver || !tx.amount) {
+        alert("Please fill all fields!");
+        return;
+      }
+
+      let pending = JSON.parse(localStorage.getItem("pending") || "[]");
+      pending.push(tx);
+      localStorage.setItem("pending", JSON.stringify(pending));
+      updatePendingList();
+
+      alert("Transaction saved offline!");
+    }
+
+    function processTransactions() {
+      let pending = JSON.parse(localStorage.getItem("pending") || "[]");
+      if(pending.length === 0) return;
+
+      let history = JSON.parse(localStorage.getItem("history") || "[]");
+
+      pending.forEach(tx => {
+        // Simulate processing time
+        tx.status = Math.random() > 0.05 ? 'Completed' : 'Failed'; // 95% chance success
+        history.push(tx);
+        console.log("Processed:", tx);
+      });
+
+      localStorage.removeItem("pending");
+      localStorage.setItem("history", JSON.stringify(history));
+
+      updatePendingList();
+      updateHistoryList();
+      alert("Pending transactions processed!");
+    }
+
+    function updatePendingList() {
+      const ul = document.getElementById("pending-list");
+      ul.innerHTML = "";
+      let pending = JSON.parse(localStorage.getItem("pending") || "[]");
+      pending.forEach(tx => {
+        const li = document.createElement("li");
+        li.className = "list-group-item status-pending";
+        li.innerText = `${tx.sender} → ${tx.receiver}: ₹${tx.amount} [Pending]`;
+        ul.appendChild(li);
+      });
+    }
+
+    function updateHistoryList() {
+      const ul = document.getElementById("history-list");
+      ul.innerHTML = "";
+      let history = JSON.parse(localStorage.getItem("history") || "[]");
+      history.forEach(tx => {
+        const li = document.createElement("li");
+        li.className = "list-group-item " + 
+          (tx.status === "Completed" ? "status-completed" : "status-failed");
+        li.innerText = `${tx.sender} → ${tx.receiver}: ₹${tx.amount} [${tx.status}]`;
+        ul.appendChild(li);
+      });
+    }
+
+    // Load data on page load
+    updatePendingList();
+    updateHistoryList();
+  </script>
+
+</body>
+</html>
